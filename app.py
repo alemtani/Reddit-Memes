@@ -1,13 +1,48 @@
+from models import Users, Posts, Subreddits
+
 from flask import Flask, request
+from flask_sqlalchemy import SQLAlchemy
+
 import json
-import os
 import requests
+import os
+import praw
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+db = SQLAlchemy(app)
+reddit = praw.Reddit(client_id=os.environ.get('REDDIT_CLIENT_ID'), 
+    client_secret=os.environ.get('REDDIT_CLIENT_SECRET'), 
+    user_agent='my user agent')
 
 # This needs to be filled with the Page Access Token that will be provided
 # by the Facebook App that will be created.
-PAT = os.environ.get('FB_PAT')
+PAT = os.environ.get('FACEBOOK_PAT')
+
+# Create the query string to peruse all meme subreddits
+subreddits = Subreddits.query.all()
+query = str()
+
+for subreddit in subreddits:
+    subreddit = subreddit[:3]
+    if len(query) == 0:
+        query += subreddit
+    else:
+        query += '+' + subreddit
+
+
+def get_or_create(session, model, **kwargs):
+    """
+    Get the instance from the model or create it.
+    """
+    instance = session.query(model).filter_by(**kwargs).first()
+    if instance:
+        return instance
+    else:
+        instance = model(**kwargs)
+        session.add(instance)
+        session.commit()
+        return instance
 
 
 @app.route('/', methods=['GET'])
@@ -63,15 +98,48 @@ def send_message(token, recipient, text):
     Send the message text to recipient with id recipient.
     """
 
+    # Create or get user to reply meme
+    myUser = get_or_create(db.session, Users, name=recipient)
+
+    # Default meme
+    payload = "https://i.imgur.com/YLyEJB7.jpeg"
+    
+    for submission in reddit.subreddit(query).search(text):
+        # Check if submission contains an image
+        if (submission.link_flair_css_class == 'image') or ((submission.is_self != True) and ((".jpg" in submission.url) or (".png" in submission.url))):
+            query_result = Posts.query.filter(Posts.name == submission.id).first()
+            if query_result is None:
+                # Submission has never been sent to anyone
+                myPost = Posts(submission.id, submission.url)
+                myUser.posts.append(myPost)
+                db.session.commit()
+                payload = submission.url
+                break
+            elif myUser not in query_result.users:
+                # Submission has never been sent to this user
+                myUser.posts.append(query_result)
+                db.session.commit()
+                payload = submission.url
+                break
+            else:
+                # Submission has already been sent to this user
+                continue
+
     r = requests.post("https://graph.facebook.com/v2.6/me/messages",
         params={"access_token": token},
         data=json.dumps({
             "recipient": {"id": recipient},
-            "message": {"text": text.decode('unicode_escape')}
+            "message": {"attachment": {
+                        "type": "image",
+                        "payload": {
+                            "url": payload
+                        }
+            }}
         }),
         headers={'Content-type': 'application/json'})
+
     if r.status_code != requests.codes.ok:
-        print(f'{r.text}')
+        print(r.text)
 
 
 if __name__ == "__main__":
