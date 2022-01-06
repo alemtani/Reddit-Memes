@@ -10,3 +10,4 @@ flask-sqlalchemy
 psycopg2
 praw
 bs4
+lxml
