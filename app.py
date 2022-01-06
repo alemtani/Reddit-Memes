@@ -7,7 +7,7 @@ import os
 import praw
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL'].replace("://", "ql://", 1)
 db = SQLAlchemy(app)
 
 reddit = praw.Reddit(client_id=os.environ.get('REDDIT_CLIENT_ID'), 
