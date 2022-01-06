@@ -1,5 +1,3 @@
-from models import Users, Posts, Subreddits
-
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 
@@ -11,6 +9,7 @@ import praw
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 db = SQLAlchemy(app)
+
 reddit = praw.Reddit(client_id=os.environ.get('REDDIT_CLIENT_ID'), 
     client_secret=os.environ.get('REDDIT_CLIENT_SECRET'), 
     user_agent='my user agent')
@@ -20,15 +19,15 @@ reddit = praw.Reddit(client_id=os.environ.get('REDDIT_CLIENT_ID'),
 PAT = os.environ.get('FACEBOOK_PAT')
 
 # Create the query string to peruse all meme subreddits
-subreddits = Subreddits.query.all()
-query = str()
+# subreddits = Subreddits.query.all()
+# query = str()
 
-for subreddit in subreddits:
-    subreddit = subreddit[:3]
-    if len(query) == 0:
-        query += subreddit
-    else:
-        query += '+' + subreddit
+# for subreddit in subreddits:
+#     subreddit = subreddit[:3]
+#     if len(query) == 0:
+#         query += subreddit
+#     else:
+#         query += '+' + subreddit
 
 
 def get_or_create(session, model, **kwargs):
@@ -99,31 +98,31 @@ def send_message(token, recipient, text):
     """
 
     # Create or get user to reply meme
-    myUser = get_or_create(db.session, Users, name=recipient)
+    # myUser = get_or_create(db.session, Users, name=recipient)
 
     # Default meme
     payload = "https://i.imgur.com/YLyEJB7.jpeg"
     
-    for submission in reddit.subreddit(query).search(text):
-        # Check if submission contains an image
-        if (submission.link_flair_css_class == 'image') or ((submission.is_self != True) and ((".jpg" in submission.url) or (".png" in submission.url))):
-            query_result = Posts.query.filter(Posts.name == submission.id).first()
-            if query_result is None:
-                # Submission has never been sent to anyone
-                myPost = Posts(submission.id, submission.url)
-                myUser.posts.append(myPost)
-                db.session.commit()
-                payload = submission.url
-                break
-            elif myUser not in query_result.users:
-                # Submission has never been sent to this user
-                myUser.posts.append(query_result)
-                db.session.commit()
-                payload = submission.url
-                break
-            else:
-                # Submission has already been sent to this user
-                continue
+    # for submission in reddit.subreddit(query).search(text):
+    #     # Check if submission contains an image
+    #     if (submission.link_flair_css_class == 'image') or ((submission.is_self != True) and ((".jpg" in submission.url) or (".png" in submission.url))):
+    #         query_result = Posts.query.filter(Posts.name == submission.id).first()
+    #         if query_result is None:
+    #             # Submission has never been sent to anyone
+    #             myPost = Posts(submission.id, submission.url)
+    #             myUser.posts.append(myPost)
+    #             db.session.commit()
+    #             payload = submission.url
+    #             break
+    #         elif myUser not in query_result.users:
+    #             # Submission has never been sent to this user
+    #             myUser.posts.append(query_result)
+    #             db.session.commit()
+    #             payload = submission.url
+    #             break
+    #         else:
+    #             # Submission has already been sent to this user
+    #             continue
 
     r = requests.post("https://graph.facebook.com/v2.6/me/messages",
         params={"access_token": token},
@@ -140,6 +139,42 @@ def send_message(token, recipient, text):
 
     if r.status_code != requests.codes.ok:
         print(r.text)
+
+
+# Stores a many-to-many relationship between users and posts
+relationship_table = db.Table('relationship_table',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), nullable=False),
+    db.Column('post_id', db.Integer, db.ForeignKey('posts.id'), nullable=False),
+    db.PrimaryKeyConstraint('user_id', 'post_id'))
+
+
+class Users(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    posts = db.relationship('Posts', secondary=relationship_table, backref='users')
+
+    def __init__(self, name):
+        self.name = name
+
+
+class Posts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    url = db.Column(db.String, nullable=False)
+
+    def __init__(self, name, url):
+        self.name = name
+        self.url = url
+
+
+class Subreddits(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    url = db.Column(db.String, nullable=False)
+
+    def __init__(self, name, url):
+        self.name = name
+        self.url = url
 
 
 if __name__ == "__main__":
