@@ -60,13 +60,11 @@ subreddits = Subreddits.query.all()
 query = str()
 
 for subreddit in subreddits:
-    subreddit = subreddit[:3]
+    name = subreddit.name[:3]
     if len(query) == 0:
-        query += subreddit
+        query += name
     else:
-        query += '+' + subreddit
-
-print(query)
+        query += '+' + name
 
 
 def get_or_create(session, model, **kwargs):
