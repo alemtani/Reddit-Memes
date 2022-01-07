@@ -140,7 +140,7 @@ def send_message(token, recipient, text):
     # Default meme
     payload = "https://i.imgur.com/YLyEJB7.jpeg"
 
-    if type(text) != 'str':
+    if not isinstance(text, str):
         text = text.decode('unicode_escape')
     
     for submission in reddit.subreddit(query).search(text):
