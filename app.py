@@ -66,6 +66,8 @@ for subreddit in subreddits:
     else:
         query += '+' + subreddit
 
+print(query)
+
 
 def get_or_create(session, model, **kwargs):
     """
