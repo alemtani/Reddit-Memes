@@ -140,6 +140,7 @@ def send_message(token, recipient, text):
     # Default meme
     payload = "https://i.imgur.com/YLyEJB7.jpeg"
     
+    print(query, text)
     for submission in reddit.subreddit(query).search(text):
         # Check if submission contains an image
         if (submission.link_flair_css_class == 'image') or ((submission.is_self != True) and ((".jpg" in submission.url) or (".png" in submission.url))):
