@@ -139,8 +139,11 @@ def send_message(token, recipient, text):
 
     # Default meme
     payload = "https://i.imgur.com/YLyEJB7.jpeg"
+
+    if type(text) != "string":
+        text = text.decode('unicode_escape')
     
-    for submission in reddit.subreddit(query).search(text.decode('unicode_escape')):
+    for submission in reddit.subreddit(query).search(text):
         # Check if submission contains an image
         if (submission.link_flair_css_class == 'image') or ((submission.is_self != True) and ((".jpg" in submission.url) or (".png" in submission.url))):
             query_result = Posts.query.filter(Posts.name == submission.id).first()
