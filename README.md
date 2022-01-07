@@ -4,7 +4,7 @@ Facebook Messenger chatbot created with Flask.
 
 ## Table of Contents
 * [General info](#general-info)
-* [Technologies](#technologies)
+* [Technologies](#technologies-used)
 * [Setup](#setup)
 * [Usage](#usage)
 * [Tutorial](#tutorial)
