@@ -60,7 +60,7 @@ subreddits = Subreddits.query.all()
 query = str()
 
 for subreddit in subreddits:
-    name = subreddit.name[:3]
+    name = subreddit.name[3:]
     if len(query) == 0:
         query += name
     else:
@@ -140,8 +140,7 @@ def send_message(token, recipient, text):
     # Default meme
     payload = "https://i.imgur.com/YLyEJB7.jpeg"
     
-    print(query, text)
-    for submission in reddit.subreddit(query).search(text):
+    for submission in reddit.subreddit(query).search(text.decode('unicode_escape')):
         # Check if submission contains an image
         if (submission.link_flair_css_class == 'image') or ((submission.is_self != True) and ((".jpg" in submission.url) or (".png" in submission.url))):
             query_result = Posts.query.filter(Posts.name == submission.id).first()
