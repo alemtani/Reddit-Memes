@@ -6,6 +6,8 @@ Facebook Messenger chatbot created with Flask.
 * [General info](#general-info)
 * [Technologies](#technologies)
 * [Setup](#setup)
+* [Usage](#usage)
+* [Tutorial](#tutorial)
 
 ## General info
 This chatbot will serve a fresh Reddit meme based on a given prompt.
